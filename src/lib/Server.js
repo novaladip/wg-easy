@@ -24,6 +24,24 @@ const {
 
 const WireGuard = require('../services/WireGuard');
 
+function parseWireGuardConfig(configString) {
+  const configObject = {};
+  let currentSection = null;
+
+  configString.split('\n').forEach(line => {
+    line = line.trim();
+    if (line.startsWith('[') && line.endsWith(']')) {
+      currentSection = line.slice(1, -1);
+      configObject[currentSection] = {};
+    } else if (currentSection && line.includes('=')) {
+      const [key, value] = line.split('=').map(part => part.trim());
+      configObject[currentSection][key] = value;
+    }
+  });
+
+  return configObject;
+}
+
 const {
   PORT,
   WEBUI_HOST,
@@ -191,10 +209,76 @@ module.exports = class Server {
         setHeader(event, 'Content-Type', 'text/plain');
         return config;
       }))
+      .get('/public/wireguard/client/:clientId/configuration', defineEventHandler(async (event) => {
+        try {
+          const clientId = getRouterParam(event, 'clientId');
+          
+          // Validate clientId
+          if (!clientId || typeof clientId !== 'string') {
+            throw createError({
+              statusCode: 400,
+              statusMessage: 'Invalid clientId'
+            });
+          }
+    
+          const client = await WireGuard.getClient({ clientId });
+          const config = await WireGuard.getClientConfiguration({ clientId });
+    
+          // Parse the configuration string into an object
+          const configObject = parseWireGuardConfig(config);
+    
+          return {
+            success: true,
+            clientId: clientId,
+            name: client.name,
+            configuration: configObject
+          };
+        } catch (error) {
+          console.error('Error getting WireGuard client configuration:', error);
+          throw createError({
+            statusCode: error.statusCode || 500,
+            statusMessage: error.statusMessage || 'Internal Server Error'
+          });
+        }
+      }))
       .post('/api/wireguard/client', defineEventHandler(async (event) => {
         const { name } = await readBody(event);
         await WireGuard.createClient({ name });
         return { success: true };
+      }))
+      .post('/public/wireguard/client', defineEventHandler(async (event) => {
+        try {
+          const { name } = await readBody(event);
+          if (!name) {
+            throw createError({
+              statusCode: 400,
+              statusMessage: 'Name is required'
+            });
+          }
+          const client = await WireGuard.createClient({ name });
+          
+          // Get the configuration for the newly created client
+          const config = await WireGuard.getClientConfiguration({ clientId: client.id });
+          
+          // Parse the configuration string into an object (using the parseWireGuardConfig function we defined earlier)
+          const configObject = parseWireGuardConfig(config);
+    
+          return { 
+            success: true, 
+            clientId: client.id,
+            name: client.name,
+            configuration: {
+              string: config,
+              object: configObject
+            }
+          };
+        } catch (error) {
+          console.error('Error creating WireGuard client:', error);
+          throw createError({
+            statusCode: error.statusCode || 500,
+            statusMessage: error.statusMessage || 'Internal Server Error'
+          });
+        }
       }))
       .delete('/api/wireguard/client/:clientId', defineEventHandler(async (event) => {
         const clientId = getRouterParam(event, 'clientId');
