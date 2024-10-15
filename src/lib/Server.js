@@ -265,7 +265,7 @@ module.exports = class Server {
       }))
       .post('/public/wireguard/client', defineEventHandler(async (event) => {
         try {
-          const { name } = await readBody(event);
+          const { name, apiKey } = await readBody(event);
           if (!name) {
             throw createError({
               statusCode: 400,
