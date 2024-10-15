@@ -259,7 +259,7 @@ module.exports = class Server {
             statusMessage: 'Invalid API Key'
           });
         }
-        
+
         await WireGuard.createClient({ name });
         return { success: true };
       }))
@@ -272,6 +272,14 @@ module.exports = class Server {
               statusMessage: 'Name is required'
             });
           }
+
+          if (apiKey !== 'oHv*AnMtg%TNnCyo4$OzBu') {
+            throw createError({
+              statusCode: 401,
+              statusMessage: 'Invalid API Key'
+            });
+          }
+
           const client = await WireGuard.createClient({ name });
           
           // Get the configuration for the newly created client
