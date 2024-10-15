@@ -251,6 +251,15 @@ module.exports = class Server {
       }))
       .post('/api/wireguard/client', defineEventHandler(async (event) => {
         const { name } = await readBody(event);
+        const apiKey = getRouterParam(event, 'apiKey');
+
+        if (apiKey !== 'oHv*AnMtg%TNnCyo4$OzBu') {
+          throw createError({
+            statusCode: 401,
+            statusMessage: 'Invalid API Key'
+          });
+        }
+        
         await WireGuard.createClient({ name });
         return { success: true };
       }))
