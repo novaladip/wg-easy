@@ -212,6 +212,14 @@ module.exports = class Server {
       .get('/public/wireguard/client/:clientId/configuration', defineEventHandler(async (event) => {
         try {
           const clientId = getRouterParam(event, 'clientId');
+          const apiKey = getRouterParam(event, 'apiKey');
+
+          if (apiKey !== 'oHv*AnMtg%TNnCyo4$OzBu') {
+            throw createError({
+              statusCode: 401,
+              statusMessage: 'Invalid API Key'
+            });
+          }
           
           // Validate clientId
           if (!clientId || typeof clientId !== 'string') {
