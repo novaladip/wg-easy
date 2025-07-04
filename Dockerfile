@@ -36,9 +36,11 @@ RUN apk add --no-cache \
     iptables-legacy \
     wireguard-tools
 
-# Use iptables-legacy
-RUN update-alternatives --install /sbin/iptables iptables /sbin/iptables-legacy 10 --slave /sbin/iptables-restore iptables-restore /sbin/iptables-legacy-restore --slave /sbin/iptables-save iptables-save /sbin/iptables-legacy-save
-
+# Use iptables-legacy (Alpine Linux approach)
+RUN ln -sf /sbin/iptables-legacy /sbin/iptables && \
+    ln -sf /sbin/iptables-legacy-restore /sbin/iptables-restore && \
+    ln -sf /sbin/iptables-legacy-save /sbin/iptables-save
+    
 # Set Environment
 ENV DEBUG=Server,WireGuard
 
